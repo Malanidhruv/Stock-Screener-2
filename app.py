@@ -12,7 +12,11 @@ st.set_page_config(
 )
 
 # Initialize AliceBlue API
-alice = initialize_alice()
+try:
+    alice = initialize_alice()
+except Exception as e:
+    st.error(f"⚠️ Failed to initialize AliceBlue API: {e}")
+    alice = None
 
 # Add polyfill warning
 st.markdown("""
@@ -25,18 +29,38 @@ if (!Array.prototype.at) {
 
 @st.cache_data(ttl=300)
 def fetch_stocks(tokens):
+    """Fetch stock data and handle errors gracefully."""
     try:
-        return get_stocks_3_to_5_percent_up(alice, tokens), get_stocks_3_to_5_percent_down(alice, tokens)
+        if not alice:
+            raise Exception("AliceBlue API is not initialized.")
+        
+        up_stocks = get_stocks_3_to_5_percent_up(alice, tokens)
+        down_stocks = get_stocks_3_to_5_percent_down(alice, tokens)
+        return up_stocks, down_stocks
     except Exception as e:
         st.error(f"⚠️ Error fetching stock data: {e}")
         return [], []
 
+def clean_data(data):
+    """Clean and structure stock data for display."""
+    if not data or not isinstance(data, list):
+        return pd.DataFrame(columns=["Name", "Token", "Close", "Change (%)"])
+    
+    try:
+        return pd.DataFrame(
+            [(item[0], str(item[1]), f"{float(item[2]):.2f}", f"{float(item[3]):.2f}%") 
+             for item in data if isinstance(item, (list, tuple)) and len(item) >= 4],
+            columns=["Name", "Token", "Close", "Change (%)"]
+        )
+    except Exception as e:
+        st.error(f"⚠️ Error processing stock data: {e}")
+        return pd.DataFrame(columns=["Name", "Token", "Close", "Change (%)"])
+
 def safe_display(df, title):
-    """Browser-safe table display with fallback"""
+    """Display stock data in a styled table format."""
     if df.empty:
         return
     
-    # Convert to HTML with basic styling
     html = f"""
     <div class="table-wrapper">
         <h3>{title}</h3>
@@ -65,35 +89,36 @@ with col2:
     strategy = st.selectbox("🎯 Select Strategy:", ["📈 Bullish Stocks", "📉 Bearish Stocks"])
 
 if st.button("🚀 Start Screening", type="primary"):
-    tokens = STOCK_LISTS[selected_list]
-    stocks_up_3_to_5, stocks_down_3_to_5 = fetch_stocks(tokens)
+    tokens = STOCK_LISTS.get(selected_list, [])
+    
+    if not tokens:
+        st.warning(f"No stocks found for {selected_list}. Please check your stock list configuration.")
+    else:
+        stocks_up_3_to_5, stocks_down_3_to_5 = fetch_stocks(tokens)
 
-    def clean_data(data):
-        return pd.DataFrame(
-            [(item[0], str(item[1]), f"{item[2]:.2f}", f"{item[3]:.2f}%") 
-             for item in data],
-            columns=["Name", "Token", "Close", "Change (%)"]
-        )
+        # Debugging Output
+        st.write("🔍 Debug - Stocks Up (3-5%):", stocks_up_3_to_5)
+        st.write("🔍 Debug - Stocks Down (3-5%):", stocks_down_3_to_5)
 
-    if strategy == "📈 Bullish Stocks":
-        df = clean_data(stocks_up_3_to_5)
-        if not df.empty:
-            search = st.text_input("🔍 Search Bullish Stocks:").upper()
-            if search:
-                df = df[df["Name"].str.contains(search, na=False, regex=False)]
-            safe_display(df, f"📈 Bullish Stocks (3-5% Up) in {selected_list}")
-        else:
-            st.warning(f"No bullish stocks found in {selected_list}")
+        if strategy == "📈 Bullish Stocks":
+            df = clean_data(stocks_up_3_to_5)
+            if not df.empty:
+                search = st.text_input("🔍 Search Bullish Stocks:").upper()
+                if search:
+                    df = df[df["Name"].str.contains(search, na=False, regex=False)]
+                safe_display(df, f"📈 Bullish Stocks (3-5% Up) in {selected_list}")
+            else:
+                st.warning(f"No bullish stocks found in {selected_list}")
 
-    elif strategy == "📉 Bearish Stocks":
-        df = clean_data(stocks_down_3_to_5)
-        if not df.empty:
-            search = st.text_input("🔍 Search Bearish Stocks:").upper()
-            if search:
-                df = df[df["Name"].str.contains(search, na=False, regex=False)]
-            safe_display(df, f"📉 Bearish Stocks (3-5% Down) in {selected_list}")
-        else:
-            st.warning(f"No bearish stocks found in {selected_list}")
+        elif strategy == "📉 Bearish Stocks":
+            df = clean_data(stocks_down_3_to_5)
+            if not df.empty:
+                search = st.text_input("🔍 Search Bearish Stocks:").upper()
+                if search:
+                    df = df[df["Name"].str.contains(search, na=False, regex=False)]
+                safe_display(df, f"📉 Bearish Stocks (3-5% Down) in {selected_list}")
+            else:
+                st.warning(f"No bearish stocks found in {selected_list}")
 
 # Mobile-friendly CSS
 st.markdown("""
