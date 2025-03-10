@@ -15,24 +15,32 @@ def fetch_stocks(tokens):
 st.set_page_config(page_title="Stock Screener", layout="wide")
 st.title("📈 Stock Screener - Daily Movers")
 
-# Sidebar Selection
-selected_list = st.sidebar.selectbox("Select Stock List:", list(STOCK_LISTS.keys()))
+# Centering the selection widgets
+col1, col2 = st.columns([1, 1])  # Two equal columns
 
-# Strategy Selection
-strategy = st.selectbox("Select Strategy:", ["3-5% Up", "3-5% Down"])
+with col1:
+    selected_list = st.selectbox("📋 Select Stock List:", list(STOCK_LISTS.keys()))
 
-# Start Screening Button
-if st.button("🚀 Start Screening"):
+with col2:
+    strategy = st.selectbox("🎯 Select Strategy:", ["3-5% Up", "3-5% Down"])
+
+# Centering the button
+st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)
+start_button = st.button("🚀 Start Screening")
+st.markdown("</div>", unsafe_allow_html=True)
+
+# Fetch Data on Button Click
+if start_button:
     tokens = STOCK_LISTS[selected_list]
     stocks_up_3_to_5, stocks_down_3_to_5 = fetch_stocks(tokens)  # Cached API call
 
     if strategy == "3-5% Up":
         if stocks_up_3_to_5:
             df_up = pd.DataFrame(stocks_up_3_to_5, columns=["Name", "Token", "Close", "Change (%)"])
-            search_up = st.text_input("Search Stock:", "").upper()
+            search_up = st.text_input("🔍 Search Stock:", "").upper()
             if search_up:
                 df_up = df_up[df_up["Name"].str.contains(search_up, na=False)]
-            st.write(f"### Stocks 3-5% Up in **{selected_list}**:")
+            st.write(f"### 📈 Stocks 3-5% Up in **{selected_list}**:")
             st.dataframe(df_up.style.format({"Close": "{:.2f}", "Change (%)": "{:.2f}"}))
         else:
             st.warning(f"No stocks in **{selected_list}** met the 3-5% up criteria.")
@@ -40,10 +48,10 @@ if st.button("🚀 Start Screening"):
     elif strategy == "3-5% Down":
         if stocks_down_3_to_5:
             df_down = pd.DataFrame(stocks_down_3_to_5, columns=["Name", "Token", "Close", "Change (%)"])
-            search_down = st.text_input("Search Stock:", "").upper()
+            search_down = st.text_input("🔍 Search Stock:", "").upper()
             if search_down:
                 df_down = df_down[df_down["Name"].str.contains(search_down, na=False)]
-            st.write(f"### Stocks 3-5% Down in **{selected_list}**:")
+            st.write(f"### 📉 Stocks 3-5% Down in **{selected_list}**:")
             st.dataframe(df_down.style.format({"Close": "{:.2f}", "Change (%)": "{:.2f}"}))
         else:
             st.warning(f"No stocks in **{selected_list}** met the 3-5% down criteria.")
