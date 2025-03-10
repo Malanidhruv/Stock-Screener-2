@@ -28,25 +28,36 @@ if st.button("🚀 Start Screening"):
         df["Change (%)"] = pd.to_numeric(df["Change (%)"], errors="coerce")
         df = df.fillna("").convert_dtypes()  # Convert to Arrow-friendly types
         return df
+        
+if strategy == "📈 Bullish Stocks":
+    if stocks_up_3_to_5:
+        df_up = clean_dataframe(stocks_up_3_to_5)
+        search_up = st.text_input("🔍 Search Stock:", "").upper()
+        if search_up:
+            df_up = df_up[df_up["Name"].str.contains(search_up, na=False)]
 
-    if strategy == "📈 Bullish Stocks":
-        if stocks_up_3_to_5:
-            df_up = clean_dataframe(stocks_up_3_to_5)
-            search_up = st.text_input("🔍 Search Stock:", "").upper()
-            if search_up:
-                df_up = df_up[df_up["Name"].str.contains(search_up, na=False)]
-            st.write(f"### 📈 Bullish Stocks (3-5% Up) in **{selected_list}**:")
-            st.dataframe(df_up)  # FIX: Using .convert_dtypes()
-        else:
-            st.warning(f"No bullish stocks in **{selected_list}** met the criteria.")
+        st.write(f"### 📈 Bullish Stocks (3-5% Up) in **{selected_list}**:")
 
-    elif strategy == "📉 Bearish Stocks":
-        if stocks_down_3_to_5:
-            df_down = clean_dataframe(stocks_down_3_to_5)
-            search_down = st.text_input("🔍 Search Stock:", "").upper()
-            if search_down:
-                df_down = df_down[df_down["Name"].str.contains(search_down, na=False)]
-            st.write(f"### 📉 Bearish Stocks (3-5% Down) in **{selected_list}**:")
-            st.dataframe(df_down)  # FIX: Using .convert_dtypes()
-        else:
-            st.warning(f"No bearish stocks in **{selected_list}** met the criteria.")
+        # DEBUG: Print DataFrame to check if it's properly formatted
+        st.write(df_up)  # 🔥 Debugging line
+
+        st.dataframe(df_up)  # 🚀 Main Display
+    else:
+        st.warning(f"No bullish stocks in **{selected_list}** met the criteria.")
+
+elif strategy == "📉 Bearish Stocks":
+    if stocks_down_3_to_5:
+        df_down = clean_dataframe(stocks_down_3_to_5)
+        search_down = st.text_input("🔍 Search Stock:", "").upper()
+        if search_down:
+            df_down = df_down[df_down["Name"].str.contains(search_down, na=False)]
+
+        st.write(f"### 📉 Bearish Stocks (3-5% Down) in **{selected_list}**:")
+
+        # DEBUG: Print DataFrame to check if it's properly formatted
+        st.write(df_down)  # 🔥 Debugging line
+
+        st.dataframe(df_down)  # 🚀 Main Display
+    else:
+        st.warning(f"No bearish stocks in **{selected_list}** met the criteria.")
+
