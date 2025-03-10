@@ -11,45 +11,22 @@ alice = initialize_alice()
 def fetch_stocks(tokens):
     return get_stocks_3_to_5_percent_up(alice, tokens), get_stocks_3_to_5_percent_down(alice, tokens)
 
-# Streamlit Page Setup
 st.set_page_config(page_title="Stock Screener", layout="wide")
 st.title("📈 Stock Screener - Daily Movers")
 
-# UI Styling for Centering
-st.markdown(
-    """
-    <style>
-        .center-container { display: flex; justify-content: center; gap: 20px; }
-        .stButton>button { width: 100%; }
-        .stTextInput>div>div>input { text-align: center; }
-    </style>
-    """, unsafe_allow_html=True
-)
-
-# Selection Widgets (Centered)
-st.markdown('<div class="center-container">', unsafe_allow_html=True)
-
+# Centered Selection Widgets
 selected_list = st.selectbox("📋 Select Stock List:", list(STOCK_LISTS.keys()))
 strategy = st.selectbox("🎯 Select Strategy:", ["📈 Bullish Stocks", "📉 Bearish Stocks"])
 
-st.markdown('</div>', unsafe_allow_html=True)
-
-# Centered Button
-st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)
-start_button = st.button("🚀 Start Screening")
-st.markdown("</div>", unsafe_allow_html=True)
-
-# Fetch Data on Button Click
-if start_button:
+if st.button("🚀 Start Screening"):
     tokens = STOCK_LISTS[selected_list]
-    stocks_up_3_to_5, stocks_down_3_to_5 = fetch_stocks(tokens)  # Cached API call
+    stocks_up_3_to_5, stocks_down_3_to_5 = fetch_stocks(tokens)
 
     def clean_dataframe(data):
-        """ Convert DataFrame columns to proper types to fix Arrow serialization issues. """
         df = pd.DataFrame(data, columns=["Name", "Token", "Close", "Change (%)"])
-        df["Close"] = pd.to_numeric(df["Close"], errors="coerce")  # Convert Close to float
-        df["Change (%)"] = pd.to_numeric(df["Change (%)"], errors="coerce")  # Convert Change (%) to float
-        df = df.fillna("").astype(object)  # Fill NaNs and ensure proper data types
+        df["Close"] = pd.to_numeric(df["Close"], errors="coerce")
+        df["Change (%)"] = pd.to_numeric(df["Change (%)"], errors="coerce")
+        df = df.fillna("").convert_dtypes()  # Convert to Arrow-friendly types
         return df
 
     if strategy == "📈 Bullish Stocks":
@@ -59,7 +36,7 @@ if start_button:
             if search_up:
                 df_up = df_up[df_up["Name"].str.contains(search_up, na=False)]
             st.write(f"### 📈 Bullish Stocks (3-5% Up) in **{selected_list}**:")
-            st.dataframe(df_up)
+            st.dataframe(df_up)  # FIX: Using .convert_dtypes()
         else:
             st.warning(f"No bullish stocks in **{selected_list}** met the criteria.")
 
@@ -70,6 +47,6 @@ if start_button:
             if search_down:
                 df_down = df_down[df_down["Name"].str.contains(search_down, na=False)]
             st.write(f"### 📉 Bearish Stocks (3-5% Down) in **{selected_list}**:")
-            st.dataframe(df_down)
+            st.dataframe(df_down)  # FIX: Using .convert_dtypes()
         else:
             st.warning(f"No bearish stocks in **{selected_list}** met the criteria.")
