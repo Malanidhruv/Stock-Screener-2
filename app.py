@@ -5,6 +5,9 @@ from alice_client import initialize_alice
 from stock_analysis import get_stocks_3_to_5_percent_up, get_stocks_3_to_5_percent_down
 from stock_lists import STOCK_LISTS
 
+# ✅ Set page configuration (MUST be first!)
+st.set_page_config(page_title="Stock Screener", layout="wide")
+
 # ✅ Initialize AliceBlue API
 alice = initialize_alice()
 
@@ -16,11 +19,9 @@ def fetch_stocks(tokens):
         st.error(f"⚠️ Error fetching stock data: {e}")
         return [], []
 
-# ✅ Mobile Browser Detection (Works for Safari & Samsung Internet)
+# ✅ Mobile Browser Detection (Checkbox-based)
 is_mobile = st.checkbox("Using Mobile Browser? (Check if on Mobile)", value=False)
 
-# ✅ Set up Streamlit page
-st.set_page_config(page_title="Stock Screener", layout="wide")
 st.title("📈 Stock Screener - Daily Movers")
 
 # ✅ Selection Widgets
@@ -32,13 +33,13 @@ if st.button("🚀 Start Screening"):
     stocks_up_3_to_5, stocks_down_3_to_5 = fetch_stocks(tokens)
 
     def clean_dataframe(data):
-        if not data:  # ✅ Handle empty lists
+        if not data:
             return pd.DataFrame(columns=["Name", "Token", "Close", "Change (%)"])
         
         df = pd.DataFrame(data, columns=["Name", "Token", "Close", "Change (%)"])
         df["Close"] = pd.to_numeric(df["Close"], errors="coerce")
         df["Change (%)"] = pd.to_numeric(df["Change (%)"], errors="coerce")
-        return df.dropna().reset_index(drop=True)  # ✅ Remove NaNs and reset index
+        return df.dropna().reset_index(drop=True)
 
     # ✅ Handling Bullish Stocks
     if strategy == "📈 Bullish Stocks":
@@ -52,7 +53,6 @@ if st.button("🚀 Start Screening"):
             
             st.write(f"### 📈 Bullish Stocks (3-5% Up) in **{selected_list}**:")
 
-            # ✅ Use `st.table()` for mobile browsers, `st.dataframe()` for desktop
             if is_mobile:
                 st.warning("⚠️ Using a simpler table format for mobile compatibility.")
                 st.table(df_up)
@@ -71,7 +71,6 @@ if st.button("🚀 Start Screening"):
             
             st.write(f"### 📉 Bearish Stocks (3-5% Down) in **{selected_list}**:")
 
-            # ✅ Use `st.table()` for mobile browsers, `st.dataframe()` for desktop
             if is_mobile:
                 st.warning("⚠️ Using a simpler table format for mobile compatibility.")
                 st.table(df_down)
