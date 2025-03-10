@@ -18,33 +18,32 @@ st.title("📈 Stock Screener - Daily Movers")
 # Sidebar Selection
 selected_list = st.sidebar.selectbox("Select Stock List:", list(STOCK_LISTS.keys()))
 
-# Fetch and Cache Data
-tokens = STOCK_LISTS[selected_list]
-stocks_up_3_to_5, stocks_down_3_to_5 = fetch_stocks(tokens)  # Cached API call
+# Strategy Selection
+strategy = st.selectbox("Select Strategy:", ["3-5% Up", "3-5% Down"])
 
-# Tabs for different strategies
-tab1, tab2 = st.tabs(["📈 3-5% Up", "📉 3-5% Down"])
+# Start Screening Button
+if st.button("🚀 Start Screening"):
+    tokens = STOCK_LISTS[selected_list]
+    stocks_up_3_to_5, stocks_down_3_to_5 = fetch_stocks(tokens)  # Cached API call
 
-# Tab for 3-5% Up Stocks
-with tab1:
-    if stocks_up_3_to_5:
-        df_up = pd.DataFrame(stocks_up_3_to_5, columns=["Name", "Token", "Close", "Change (%)"])
-        search_up = st.text_input("Search Stock (Up):", "").upper()
-        if search_up:
-            df_up = df_up[df_up["Name"].str.contains(search_up, na=False)]
-        st.write(f"### Stocks 3-5% Up in **{selected_list}**:")
-        st.dataframe(df_up.style.format({"Close": "{:.2f}", "Change (%)": "{:.2f}"}))
-    else:
-        st.warning(f"No stocks in **{selected_list}** met the 3-5% up criteria.")
+    if strategy == "3-5% Up":
+        if stocks_up_3_to_5:
+            df_up = pd.DataFrame(stocks_up_3_to_5, columns=["Name", "Token", "Close", "Change (%)"])
+            search_up = st.text_input("Search Stock:", "").upper()
+            if search_up:
+                df_up = df_up[df_up["Name"].str.contains(search_up, na=False)]
+            st.write(f"### Stocks 3-5% Up in **{selected_list}**:")
+            st.dataframe(df_up.style.format({"Close": "{:.2f}", "Change (%)": "{:.2f}"}))
+        else:
+            st.warning(f"No stocks in **{selected_list}** met the 3-5% up criteria.")
 
-# Tab for 3-5% Down Stocks
-with tab2:
-    if stocks_down_3_to_5:
-        df_down = pd.DataFrame(stocks_down_3_to_5, columns=["Name", "Token", "Close", "Change (%)"])
-        search_down = st.text_input("Search Stock (Down):", "").upper()
-        if search_down:
-            df_down = df_down[df_down["Name"].str.contains(search_down, na=False)]
-        st.write(f"### Stocks 3-5% Down in **{selected_list}**:")
-        st.dataframe(df_down.style.format({"Close": "{:.2f}", "Change (%)": "{:.2f}"}))
-    else:
-        st.warning(f"No stocks in **{selected_list}** met the 3-5% down criteria.")
+    elif strategy == "3-5% Down":
+        if stocks_down_3_to_5:
+            df_down = pd.DataFrame(stocks_down_3_to_5, columns=["Name", "Token", "Close", "Change (%)"])
+            search_down = st.text_input("Search Stock:", "").upper()
+            if search_down:
+                df_down = df_down[df_down["Name"].str.contains(search_down, na=False)]
+            st.write(f"### Stocks 3-5% Down in **{selected_list}**:")
+            st.dataframe(df_down.style.format({"Close": "{:.2f}", "Change (%)": "{:.2f}"}))
+        else:
+            st.warning(f"No stocks in **{selected_list}** met the 3-5% down criteria.")
