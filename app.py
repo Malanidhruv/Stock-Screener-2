@@ -4,16 +4,26 @@ from alice_client import initialize_alice
 from stock_analysis import get_stocks_3_to_5_percent_up, get_stocks_3_to_5_percent_down
 from stock_lists import STOCK_LISTS
 
-# Set page configuration
-st.set_page_config(page_title="Stock Screener", layout="wide")
+# Set page configuration with legacy browser support
+st.set_page_config(
+    page_title="Stock Screener",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
 # Initialize AliceBlue API
 alice = initialize_alice()
 
-# Browser compatibility warning
-st.info("ℹ️ For best experience, use latest Chrome/Firefox/Safari. Some features might be limited in older browsers.")
+# Add polyfill warning
+st.markdown("""
+<script>
+if (!Array.prototype.at) {
+    alert('For best experience, use latest Chrome/Firefox. Some features may be limited.');
+}
+</script>
+""", unsafe_allow_html=True)
 
-@st.cache_data(ttl=300)  # Cache for 5 minutes
+@st.cache_data(ttl=300)
 def fetch_stocks(tokens):
     try:
         return get_stocks_3_to_5_percent_up(alice, tokens), get_stocks_3_to_5_percent_down(alice, tokens)
@@ -21,47 +31,80 @@ def fetch_stocks(tokens):
         st.error(f"⚠️ Error fetching stock data: {e}")
         return [], []
 
+def safe_display(df, title):
+    """Browser-safe table display with fallback"""
+    if df.empty:
+        return
+    
+    # Convert to HTML with basic styling
+    html = f"""
+    <div class="table-wrapper">
+        <h3>{title}</h3>
+        <table style="width: 100%; border-collapse: collapse; margin: 1rem 0;">
+            <thead>
+                <tr style="background: #f0f2f6;">{''.join(f'<th style="padding: 8px; border: 1px solid #ddd;">{col}</th>' for col in df.columns)}</tr>
+            </thead>
+            <tbody>
+                {"".join(
+                    f'<tr>{"".join(f"<td style=\"padding: 8px; border: 1px solid #ddd;\">{value}</td>" for value in row)}</tr>'
+                    for row in df.values
+                )}
+            </tbody>
+        </table>
+    </div>
+    """
+    st.markdown(html, unsafe_allow_html=True)
+
 st.title("📈 Stock Screener - Daily Movers")
 
 # Selection Widgets
-selected_list = st.selectbox("📋 Select Stock List:", list(STOCK_LISTS.keys()))
-strategy = st.selectbox("🎯 Select Strategy:", ["📈 Bullish Stocks", "📉 Bearish Stocks"])
+col1, col2 = st.columns(2)
+with col1:
+    selected_list = st.selectbox("📋 Select Stock List:", list(STOCK_LISTS.keys()))
+with col2:
+    strategy = st.selectbox("🎯 Select Strategy:", ["📈 Bullish Stocks", "📉 Bearish Stocks"])
 
-if st.button("🚀 Start Screening"):
+if st.button("🚀 Start Screening", type="primary"):
     tokens = STOCK_LISTS[selected_list]
     stocks_up_3_to_5, stocks_down_3_to_5 = fetch_stocks(tokens)
 
-    def clean_dataframe(data):
-        if not data:
-            return pd.DataFrame(columns=["Name", "Token", "Close", "Change (%)"])
-        
-        df = pd.DataFrame(data, columns=["Name", "Token", "Close", "Change (%)"])
-        df["Close"] = pd.to_numeric(df["Close"], errors="coerce")
-        df["Change (%)"] = pd.to_numeric(df["Change (%)"], errors="coerce")
-        return df.dropna().reset_index(drop=True)
+    def clean_data(data):
+        return pd.DataFrame(
+            [(item[0], str(item[1]), f"{item[2]:.2f}", f"{item[3]:.2f}%") 
+             for item in data],
+            columns=["Name", "Token", "Close", "Change (%)"]
+        )
 
-    # Handling Bullish Stocks
     if strategy == "📈 Bullish Stocks":
-        df_up = clean_dataframe(stocks_up_3_to_5)
-        if df_up.empty:
-            st.warning(f"No bullish stocks in **{selected_list}** met the criteria.")
+        df = clean_data(stocks_up_3_to_5)
+        if not df.empty:
+            search = st.text_input("🔍 Search Bullish Stocks:").upper()
+            if search:
+                df = df[df["Name"].str.contains(search, na=False, regex=False)]
+            safe_display(df, f"📈 Bullish Stocks (3-5% Up) in {selected_list}")
         else:
-            search_up = st.text_input("🔍 Search Bullish Stock:").upper()
-            if search_up:
-                df_up = df_up[df_up["Name"].str.contains(search_up, na=False, regex=False)]
-            
-            st.write(f"### 📈 Bullish Stocks (3-5% Up) in **{selected_list}**:")
-            st.table(df_up)
+            st.warning(f"No bullish stocks found in {selected_list}")
 
-    # Handling Bearish Stocks
     elif strategy == "📉 Bearish Stocks":
-        df_down = clean_dataframe(stocks_down_3_to_5)
-        if df_down.empty:
-            st.warning(f"No bearish stocks in **{selected_list}** met the criteria.")
+        df = clean_data(stocks_down_3_to_5)
+        if not df.empty:
+            search = st.text_input("🔍 Search Bearish Stocks:").upper()
+            if search:
+                df = df[df["Name"].str.contains(search, na=False, regex=False)]
+            safe_display(df, f"📉 Bearish Stocks (3-5% Down) in {selected_list}")
         else:
-            search_down = st.text_input("🔍 Search Bearish Stock:").upper()
-            if search_down:
-                df_down = df_down[df_down["Name"].str.contains(search_down, na=False, regex=False)]
-            
-            st.write(f"### 📉 Bearish Stocks (3-5% Down) in **{selected_list}**:")
-            st.table(df_down)
+            st.warning(f"No bearish stocks found in {selected_list}")
+
+# Mobile-friendly CSS
+st.markdown("""
+<style>
+@media screen and (max-width: 600px) {
+    .table-wrapper table {
+        font-size: 14px;
+    }
+    .table-wrapper td, .table-wrapper th {
+        padding: 6px !important;
+    }
+}
+</style>
+""", unsafe_allow_html=True)
