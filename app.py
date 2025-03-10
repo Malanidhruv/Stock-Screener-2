@@ -18,15 +18,6 @@ except Exception as e:
     st.error(f"⚠️ Failed to initialize AliceBlue API: {e}")
     alice = None
 
-# Add polyfill warning
-st.markdown("""
-<script>
-if (!Array.prototype.at) {
-    alert('For best experience, use latest Chrome/Firefox. Some features may be limited.');
-}
-</script>
-""", unsafe_allow_html=True)
-
 @st.cache_data(ttl=300)
 def fetch_stocks(tokens):
     """Fetch stock data and handle errors gracefully."""
@@ -47,38 +38,36 @@ def clean_data(data):
         return pd.DataFrame(columns=["Name", "Token", "Close", "Change (%)"])
     
     try:
-        return pd.DataFrame(
+        df = pd.DataFrame(
             [(item[0], str(item[1]), f"{float(item[2]):.2f}", f"{float(item[3]):.2f}%") 
              for item in data if isinstance(item, (list, tuple)) and len(item) >= 4],
             columns=["Name", "Token", "Close", "Change (%)"]
         )
+        
+        # Convert "Change (%)" column to float for sorting
+        df["Change (%)"] = df["Change (%)"].str.replace("%", "").astype(float)
+        return df
     except Exception as e:
         st.error(f"⚠️ Error processing stock data: {e}")
         return pd.DataFrame(columns=["Name", "Token", "Close", "Change (%)"])
 
 def safe_display(df, title):
-    """Display stock data in a styled table format."""
+    """Display stock data in a properly formatted Streamlit dataframe."""
     if df.empty:
+        st.warning(f"No stocks found for {title}")
         return
-    
-    html = f"""
-    <div class="table-wrapper">
-        <h3>{title}</h3>
-        <table style="width: 100%; border-collapse: collapse; margin: 1rem 0;">
-            <thead>
-                <tr style="background: #f0f2f6;">{''.join(f'<th style="padding: 8px; border: 1px solid #ddd;">{col}</th>' for col in df.columns)}</tr>
-            </thead>
-            <tbody>
-                {"".join(
-                    f'<tr>{"".join(f"<td style=\"padding: 8px; border: 1px solid #ddd;\">{value}</td>" for value in row)}</tr>'
-                    for row in df.values
-                )}
-            </tbody>
-        </table>
-    </div>
-    """
-    st.markdown(html, unsafe_allow_html=True)
 
+    # Apply conditional formatting: Green for positive, Red for negative
+    styled_df = df.style.applymap(
+        lambda x: "color: green; font-weight: bold;" if x > 0 else "color: red; font-weight: bold;",
+        subset=["Change (%)"]
+    )
+
+    # Display DataFrame with title
+    st.markdown(f"## {title}")
+    st.dataframe(styled_df, height=400, width=800)
+
+# Streamlit App UI
 st.title("📈 Stock Screener - Daily Movers")
 
 # Selection Widgets
@@ -96,11 +85,9 @@ if st.button("🚀 Start Screening", type="primary"):
     else:
         stocks_up_3_to_5, stocks_down_3_to_5 = fetch_stocks(tokens)
 
-        # Debugging Output
-        st.write("🔍 Debug - Stocks Up (3-5%):", stocks_up_3_to_5)
-        st.write("🔍 Debug - Stocks Down (3-5%):", stocks_down_3_to_5)
-
+        # Process and display data based on selected strategy
         if strategy == "📈 Bullish Stocks":
+            st.write("🔍 Debug - Stocks Up (3-5%):", stocks_up_3_to_5)  # Only print when bullish is selected
             df = clean_data(stocks_up_3_to_5)
             if not df.empty:
                 search = st.text_input("🔍 Search Bullish Stocks:").upper()
@@ -111,6 +98,7 @@ if st.button("🚀 Start Screening", type="primary"):
                 st.warning(f"No bullish stocks found in {selected_list}")
 
         elif strategy == "📉 Bearish Stocks":
+            st.write("🔍 Debug - Stocks Down (3-5%):", stocks_down_3_to_5)  # Only print when bearish is selected
             df = clean_data(stocks_down_3_to_5)
             if not df.empty:
                 search = st.text_input("🔍 Search Bearish Stocks:").upper()
