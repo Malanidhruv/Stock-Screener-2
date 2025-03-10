@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import sys
 from alice_client import initialize_alice
 from stock_analysis import get_stocks_3_to_5_percent_up, get_stocks_3_to_5_percent_down
 from stock_lists import STOCK_LISTS
@@ -14,6 +15,9 @@ def fetch_stocks(tokens):
     except Exception as e:
         st.error(f"⚠️ Error fetching stock data: {e}")
         return [], []
+
+# ✅ Detect Mobile Browsers (Safari, Samsung Internet, Other Mobile Browsers)
+is_mobile = st.user_agent and ("Mobile" in st.user_agent or "Android" in st.user_agent or "iPhone" in st.user_agent)
 
 # ✅ Set up mobile-friendly page layout
 st.set_page_config(page_title="Stock Screener", layout="wide")
@@ -47,11 +51,13 @@ if st.button("🚀 Start Screening"):
                 df_up = df_up[df_up["Name"].str.contains(search_up, na=False, regex=False)]
             
             st.write(f"### 📈 Bullish Stocks (3-5% Up) in **{selected_list}**:")
-            try:
-                st.dataframe(df_up, use_container_width=True)  # ✅ Use `st.dataframe()`
-            except Exception as e:
-                st.warning("⚠️ Dataframe display failed! Using fallback table.")
-                st.table(df_up)  # ✅ Use `st.table()` as a fallback for Safari
+
+            # ✅ Use `st.table()` for mobile browsers, `st.dataframe()` for desktop
+            if is_mobile:
+                st.warning("⚠️ Using a simpler table format for mobile compatibility.")
+                st.table(df_up)
+            else:
+                st.dataframe(df_up, use_container_width=True)
 
     # ✅ Handling Bearish Stocks
     elif strategy == "📉 Bearish Stocks":
@@ -64,8 +70,10 @@ if st.button("🚀 Start Screening"):
                 df_down = df_down[df_down["Name"].str.contains(search_down, na=False, regex=False)]
             
             st.write(f"### 📉 Bearish Stocks (3-5% Down) in **{selected_list}**:")
-            try:
-                st.dataframe(df_down, use_container_width=True)  # ✅ Use `st.dataframe()`
-            except Exception as e:
-                st.warning("⚠️ Dataframe display failed! Using fallback table.")
-                st.table(df_down)  # ✅ Use `st.table()` as a fallback for Safari
+
+            # ✅ Use `st.table()` for mobile browsers, `st.dataframe()` for desktop
+            if is_mobile:
+                st.warning("⚠️ Using a simpler table format for mobile compatibility.")
+                st.table(df_down)
+            else:
+                st.dataframe(df_down, use_container_width=True)
