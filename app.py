@@ -33,23 +33,24 @@ def fetch_stocks(tokens):
         return [], []
 
 def clean_data(data):
-    """Clean and structure stock data for display."""
+    """Convert API response (list of dictionaries) to a structured DataFrame."""
     if not data or not isinstance(data, list):
         return pd.DataFrame(columns=["Name", "Token", "Close", "Change (%)"])
     
     try:
-        df = pd.DataFrame(
-            [(item[0], str(item[1]), f"{float(item[2]):.2f}", f"{float(item[3]):.2f}%") 
-             for item in data if isinstance(item, (list, tuple)) and len(item) >= 4],
-            columns=["Name", "Token", "Close", "Change (%)"]
-        )
+        df = pd.DataFrame(data)  # Directly convert list of dictionaries to DataFrame
         
-        # Convert "Change (%)" column to float for sorting
-        df["Change (%)"] = df["Change (%)"].str.replace("%", "").astype(float)
+        # Round Close Price to 2 decimal places
+        df["Close"] = df["Close"].astype(float).round(2)
+
+        # Format Change (%) with 2 decimal places and add percentage sign
+        df["Change (%)"] = df["Change (%)"].astype(float).round(2)
+
         return df
     except Exception as e:
         st.error(f"⚠️ Error processing stock data: {e}")
         return pd.DataFrame(columns=["Name", "Token", "Close", "Change (%)"])
+
 
 def safe_display(df, title):
     """Display stock data in a properly formatted Streamlit dataframe."""
