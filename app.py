@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import sys
 from alice_client import initialize_alice
 from stock_analysis import get_stocks_3_to_5_percent_up, get_stocks_3_to_5_percent_down
 from stock_lists import STOCK_LISTS
@@ -15,24 +16,10 @@ def fetch_stocks(tokens):
         st.error(f"⚠️ Error fetching stock data: {e}")
         return [], []
 
-# ✅ Detect Mobile Browser Using JavaScript
-st.markdown(
-    """
-    <script>
-        function detectMobile() {
-            let isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-            window.localStorage.setItem("is_mobile", isMobile);
-        }
-        detectMobile();
-    </script>
-    """,
-    unsafe_allow_html=True
-)
+# ✅ Mobile Browser Detection (Works for Safari & Samsung Internet)
+is_mobile = st.checkbox("Using Mobile Browser? (Check if on Mobile)", value=False)
 
-# ✅ Retrieve mobile status (default to False)
-is_mobile = st.session_state.get("is_mobile", False)
-
-# ✅ Set up page layout
+# ✅ Set up Streamlit page
 st.set_page_config(page_title="Stock Screener", layout="wide")
 st.title("📈 Stock Screener - Daily Movers")
 
