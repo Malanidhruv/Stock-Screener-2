@@ -7,6 +7,9 @@ from stock_analysis import get_stocks_3_to_5_percent_up, get_stocks_3_to_5_perce
 from stock_lists import STOCK_LISTS
 
 st.set_page_config(page_title="Stock Screener", layout="wide")
+# Add compatibility warning
+st.warning("⚠️ This application is best compatible with **Google Chrome**. Please use Chrome for the best experience.")
+
 
 # Try loading stored credentials
 user_id, api_key = load_credentials()
