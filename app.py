@@ -6,11 +6,19 @@ from stock_lists import STOCK_LISTS
 
 st.set_page_config(page_title="Stock Screener", layout="wide")
 
-try:
-    alice = initialize_alice()
-except Exception as e:
-    st.error(f"Failed to initialize AliceBlue API: {e}")
-    alice = None
+# 🔹 Get User Credentials from Input
+st.sidebar.title("AliceBlue API Login")
+user_id = st.sidebar.text_input("Enter User ID", value="", type="default")
+api_key = st.sidebar.text_input("Enter API Key", value="", type="password")
+
+# 🔹 Initialize AliceBlue API Dynamically
+alice = None
+if user_id and api_key:
+    try:
+        alice = initialize_alice(user_id, api_key)
+        st.sidebar.success("Connected to AliceBlue API")
+    except Exception as e:
+        st.sidebar.error(f"Failed to initialize AliceBlue API: {e}")
 
 @st.cache_data(ttl=300)
 def fetch_stocks(tokens):
@@ -49,13 +57,16 @@ selected_list = st.selectbox("Select Stock List:", list(STOCK_LISTS.keys()))
 strategy = st.selectbox("Select Strategy:", ["Bullish Stocks", "Bearish Stocks"])
 
 if st.button("Start Screening"):
-    tokens = STOCK_LISTS.get(selected_list, [])
-    if not tokens:
-        st.warning(f"No stocks found for {selected_list}.")
+    if not alice:
+        st.warning("Please enter valid AliceBlue credentials in the sidebar.")
     else:
-        stocks_up, stocks_down = fetch_stocks(tokens)
-        df = clean_data(stocks_up if strategy == "Bullish Stocks" else stocks_down)
-        search = st.text_input("Search Stocks:").upper()
-        if search:
-            df = df[df["Name"].str.contains(search, na=False, regex=False)]
-        safe_display(df, strategy)
+        tokens = STOCK_LISTS.get(selected_list, [])
+        if not tokens:
+            st.warning(f"No stocks found for {selected_list}.")
+        else:
+            stocks_up, stocks_down = fetch_stocks(tokens)
+            df = clean_data(stocks_up if strategy == "Bullish Stocks" else stocks_down)
+            search = st.text_input("Search Stocks:").upper()
+            if search:
+                df = df[df["Name"].str.contains(search, na=False, regex=False)]
+            safe_display(df, strategy)
