@@ -8,7 +8,7 @@ from stock_lists import STOCK_LISTS
 
 st.set_page_config(page_title="Stock Screener", layout="wide")
 # Add compatibility warning
-st.warning("This application is best compatible with **Google Chrome**. Hi Kshitij")
+st.warning("This application is best compatible with **Google Chrome**.")
 
 
 # Try loading stored credentials
