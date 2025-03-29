@@ -1,38 +1,25 @@
 import streamlit as st
-from datetime import datetime, timedelta
 
-st.title("Anonymous Stock Discussion")
+# Initialize session state variables if they don't already exist
+if "session_id" not in st.session_state:
+    st.session_state["session_id"] = "default_session"
 
-# Generate a random anonymous user ID if not already assigned
 if "user_id" not in st.session_state:
     st.session_state["user_id"] = f"User{st.session_state.session_id[:6]}"
 
-# Temporary storage for chat messages (will reset on app restart)
 if "messages" not in st.session_state:
     st.session_state["messages"] = []
 
-# Chat Input Section
-with st.form("chat_form", clear_on_submit=True):
-    message = st.text_input("Send a message anonymously")
-    submit_button = st.form_submit_button("Send")
+st.title("Anonymous Stock Discussion")
 
-# Add the message if user submits
-if submit_button and message:
-    st.session_state["messages"].append({
-        "user": st.session_state["user_id"],
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "message": message
-    })
+# User input for chat
+user_input = st.text_input("Enter your message:")
 
-# Display chat messages
-st.write("### Chat Messages")
+if user_input:
+    st.session_state["messages"].append(f"{st.session_state['user_id']}: {user_input}")
+    st.text_input("Enter your message:", value="", key="empty_input")  # Clear input box
+
+# Display chat history
+st.subheader("Chat History")
 for msg in st.session_state["messages"]:
-    st.markdown(f"**{msg['user']}** ({msg['timestamp']}): {msg['message']}")
-
-# Auto-clear chat messages every 24 hours (based on timestamp)
-if "last_clear" not in st.session_state:
-    st.session_state["last_clear"] = datetime.now()
-
-if datetime.now() > st.session_state["last_clear"] + timedelta(days=1):
-    st.session_state["messages"] = []
-    st.session_state["last_clear"] = datetime.now()
+    st.write(msg)
