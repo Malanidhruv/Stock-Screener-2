@@ -33,13 +33,15 @@ try:
         messages = json.loads(response.text)  # Parse JSON response
 
         st.subheader("Chat Messages")
-        for entry in messages:
-            # Safeguard: Check the structure before unpacking
-            if len(entry) == 3:
-                timestamp, user, msg = entry
-                st.write(f"**{user}**: {msg}")
-            else:
-                st.write(f"Invalid message format: {entry}")
+        if messages:
+            for entry in messages:
+                if len(entry) == 3:  # Safeguard unpacking with length check
+                    timestamp, user, msg = entry
+                    st.write(f"**{user}** at *{timestamp}*: {msg}")
+                else:
+                    st.warning(f"Skipped invalid message format: {entry}")
+        else:
+            st.info("No messages to display.")
     else:
         st.error("Failed to fetch messages.")
 except Exception as e:
