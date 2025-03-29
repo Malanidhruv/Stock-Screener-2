@@ -1,25 +1,53 @@
 import streamlit as st
+import sqlite3
+import datetime
 
-# Initialize session state variables if they don't already exist
-if "session_id" not in st.session_state:
-    st.session_state["session_id"] = "default_session"
+# Connect to SQLite database (it will create one if it doesn't exist)
+conn = sqlite3.connect("chat_messages.db")
+c = conn.cursor()
 
+# Create messages table if it doesn't exist
+c.execute('''
+    CREATE TABLE IF NOT EXISTS messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT,
+        message TEXT,
+        timestamp TEXT
+    )
+''')
+conn.commit()
+
+# Display title
+st.title("Group Chat - Stock Discussion")
+
+# Initialize session state for user_id if it doesn't exist
 if "user_id" not in st.session_state:
-    st.session_state["user_id"] = f"User{st.session_state.session_id[:6]}"
+    st.session_state["user_id"] = f"User{str(datetime.datetime.now().microsecond)}"
 
-if "messages" not in st.session_state:
-    st.session_state["messages"] = []
+# Function to insert a message into the database
+def add_message(user_id, message):
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    c.execute("INSERT INTO messages (user_id, message, timestamp) VALUES (?, ?, ?)", (user_id, message, timestamp))
+    conn.commit()
 
-st.title("Anonymous Stock Discussion")
+# Function to fetch all messages from the database
+def get_messages():
+    c.execute("SELECT user_id, message, timestamp FROM messages ORDER BY id ASC")
+    return c.fetchall()
 
-# User input for chat
+# User input for chat message
 user_input = st.text_input("Enter your message:")
 
 if user_input:
-    st.session_state["messages"].append(f"{st.session_state['user_id']}: {user_input}")
+    add_message(st.session_state["user_id"], user_input)
     st.text_input("Enter your message:", value="", key="empty_input")  # Clear input box
 
 # Display chat history
 st.subheader("Chat History")
-for msg in st.session_state["messages"]:
-    st.write(msg)
+messages = get_messages()
+
+for user, msg, timestamp in messages:
+    st.write(f"[{timestamp}] **{user}**: {msg}")
+
+# Close the connection when done
+conn.close()
