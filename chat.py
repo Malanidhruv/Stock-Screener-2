@@ -1,49 +1,30 @@
 import streamlit as st
-from datetime import datetime
+import requests
 import json
-import os
 
-# File path for chat history
-CHAT_HISTORY_FILE = "chat_history.json"
+# Web app URL from Google Apps Script
+WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyjQqjHHBLLqQTfY9WpPCjDm7l_cg5qsYgyWxWXiQmpqbzSaiOqngEvmOAhzFJ8X26J/exec"
 
-# Initialize session_id and user_id
-if "session_id" not in st.session_state:
-    st.session_state["session_id"] = os.urandom(16).hex()
-
+# Initialize user ID in session state
 if "user_id" not in st.session_state:
     st.session_state["user_id"] = f"User{st.session_state.session_id[:6]}"
 
-# Function to load chat history from the file
-def load_chat_history():
-    try:
-        with open(CHAT_HISTORY_FILE, "r") as file:
-            return json.load(file)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return []
-
-# Function to save chat history to the file
-def save_chat_history(messages):
-    with open(CHAT_HISTORY_FILE, "w") as file:
-        json.dump(messages, file)
-
-# Load chat history at the start
-if "messages" not in st.session_state:
-    st.session_state["messages"] = load_chat_history()
-
-# Title and input section
 st.title("Community Stock Discussion")
-
-if st.session_state["messages"]:
-    st.subheader("Chat Messages")
-    for user, msg, timestamp in st.session_state["messages"]:
-        st.write(f"**{user}** [{timestamp}]: {msg}")
-else:
-    st.info("No messages yet. Start the conversation!")
-
 message = st.text_input("Enter your message", key="message_input")
 
 if st.button("Send") and message:
-    new_message = (st.session_state["user_id"], message, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-    st.session_state["messages"].append(new_message)
-    save_chat_history(st.session_state["messages"])
-    st.experimental_rerun()
+    # POST request to Google Apps Script (send message)
+    response = requests.post(WEB_APP_URL, params={"action": "postMessage", "user": st.session_state["user_id"], "message": message})
+    if response.status_code == 200:
+        st.success("Message sent!")
+    else:
+        st.error("Failed to send message. Try again.")
+
+# Fetch and display chat messages
+try:
+    response = requests.get(WEB_APP_URL, params={"action": "getMessages"})
+    messages = json.loads(response.text)
+    for timestamp, user, msg in messages:
+        st.write(f"**{user}**: {msg}")
+except Exception as e:
+    st.error(f"Failed to fetch messages: {e}")
