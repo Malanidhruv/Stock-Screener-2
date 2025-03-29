@@ -1,14 +1,17 @@
-
 import streamlit as st
 import requests
 import json
+import os  # For generating random session ID if needed
 
 # Google Apps Script Web App URL (replace with your actual URL)
 WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyjQqjHHBLLqQTfY9WpPCjDm7l_cg5qsYgyWxWXiQmpqbzSaiOqngEvmOAhzFJ8X26J/exec"
 
-# Initialize user ID in session state
+# Initialize session_id and user_id properly in session state
+if "session_id" not in st.session_state:
+    st.session_state["session_id"] = os.urandom(16).hex()  # Random session ID
+
 if "user_id" not in st.session_state:
-    st.session_state["user_id"] = f"User{st.session_state.session_id[:6]}"
+    st.session_state["user_id"] = f"User{st.session_state['session_id'][:6]}"  # User ID based on session ID
 
 st.title("Community Stock Discussion")
 
