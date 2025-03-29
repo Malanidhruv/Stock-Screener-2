@@ -33,6 +33,13 @@ if "messages" not in st.session_state:
 # Title and input section
 st.title("Community Stock Discussion")
 
+if st.session_state["messages"]:
+    st.subheader("Chat Messages")
+    for user, msg, timestamp in st.session_state["messages"]:
+        st.write(f"**{user}** [{timestamp}]: {msg}")
+else:
+    st.info("No messages yet. Start the conversation!")
+
 message = st.text_input("Enter your message", key="message_input")
 
 if st.button("Send") and message:
@@ -40,8 +47,3 @@ if st.button("Send") and message:
     st.session_state["messages"].append(new_message)
     save_chat_history(st.session_state["messages"])
     st.experimental_rerun()
-
-# Display all messages with timestamps
-st.subheader("Chat Messages")
-for user, msg, timestamp in st.session_state["messages"]:
-    st.write(f"**{user}** [{timestamp}]: {msg}")
