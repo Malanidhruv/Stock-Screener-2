@@ -1,17 +1,17 @@
 import streamlit as st
 import requests
 import json
-import os  # For generating random session ID if needed
+import os
 
 # Google Apps Script Web App URL (replace with your actual URL)
 WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyjQqjHHBLLqQTfY9WpPCjDm7l_cg5qsYgyWxWXiQmpqbzSaiOqngEvmOAhzFJ8X26J/exec"
 
 # Initialize session_id and user_id properly in session state
 if "session_id" not in st.session_state:
-    st.session_state["session_id"] = os.urandom(16).hex()  # Random session ID
+    st.session_state["session_id"] = os.urandom(16).hex()
 
 if "user_id" not in st.session_state:
-    st.session_state["user_id"] = f"User{st.session_state['session_id'][:6]}"  # User ID based on session ID
+    st.session_state["user_id"] = f"User{st.session_state['session_id'][:6]}"
 
 st.title("Community Stock Discussion")
 
@@ -30,10 +30,16 @@ if st.button("Send") and message:
 try:
     response = requests.get(WEB_APP_URL, params={"action": "getMessages"})
     if response.status_code == 200:
-        messages = json.loads(response.text)
+        messages = json.loads(response.text)  # Parse JSON response
+
         st.subheader("Chat Messages")
-        for timestamp, user, msg in messages:
-            st.write(f"**{user}**: {msg}")
+        for entry in messages:
+            # Safeguard: Check the structure before unpacking
+            if len(entry) == 3:
+                timestamp, user, msg = entry
+                st.write(f"**{user}**: {msg}")
+            else:
+                st.write(f"Invalid message format: {entry}")
     else:
         st.error("Failed to fetch messages.")
 except Exception as e:
